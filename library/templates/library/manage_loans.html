@@ -1,0 +1,199 @@
+{% extends 'library/base.html' %}
+{% load static %}
+
+{% block title %}Manage Library Loans - Staff Portal{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <div class="badge bg-warning text-dark mb-2 fw-bold">
+                <i class="bi bi-shield-lock-fill me-1"></i> Librarian Control Center
+            </div>
+            <h1 class="h2 fw-bold text-dark mb-1">Global Loan Management</h1>
+            <p class="text-muted mb-0">Oversee all circulating inventory, reader loans, returns, and overdue fees.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'book_create' %}" class="btn btn-primary rounded-pill px-3">
+                <i class="bi bi-plus-circle me-1"></i> Add New Book
+            </a>
+            <a href="{% url 'category_create' %}" class="btn btn-outline-secondary rounded-pill px-3">
+                <i class="bi bi-folder-plus me-1"></i> Add Category
+            </a>
+        </div>
+    </div>
+
+    <!-- Loan Metrics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon-wrapper bg-primary-subtle text-primary">
+                        <i class="bi bi-journal-bookmark"></i>
+                    </div>
+                    <div>
+                        <div class="h4 fw-bold mb-0">{{ total_active }}</div>
+                        <div class="small text-muted text-uppercase fw-semibold">Active Loans</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon-wrapper bg-danger-subtle text-danger">
+                        <i class="bi bi-exclamation-octagon"></i>
+                    </div>
+                    <div>
+                        <div class="h4 fw-bold mb-0 text-danger">{{ total_overdue }}</div>
+                        <div class="small text-muted text-uppercase fw-semibold">Overdue Loans</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon-wrapper bg-success-subtle text-success">
+                        <i class="bi bi-check2-circle"></i>
+                    </div>
+                    <div>
+                        <div class="h4 fw-bold mb-0 text-success">{{ total_returned }}</div>
+                        <div class="small text-muted text-uppercase fw-semibold">Returned Total</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon-wrapper bg-warning-subtle text-warning">
+                        <i class="bi bi-currency-dollar"></i>
+                    </div>
+                    <div>
+                        <div class="h4 fw-bold mb-0 text-dark">${{ total_fines_accrued }}</div>
+                        <div class="small text-muted text-uppercase fw-semibold">Fines Accrued</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan Filter & Search Toolbar -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <form method="GET" action="{% url 'manage_loans' %}" class="row g-3 align-items-center">
+            <div class="col-lg-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control bg-light border-start-0" placeholder="Search by book title or member username..." value="{{ search_query }}">
+                </div>
+            </div>
+            <div class="col-lg-4 col-sm-8">
+                <select name="status" class="form-select bg-light" onchange="this.form.submit()">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Loan Statuses</option>
+                    <option value="borrowed" {% if status_filter == 'borrowed' %}selected{% endif %}>Active / Borrowed Only</option>
+                    <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Overdue Loans Only</option>
+                    <option value="returned" {% if status_filter == 'returned' %}selected{% endif %}>Returned History</option>
+                </select>
+            </div>
+            <div class="col-lg-2 col-sm-4 d-grid">
+                <button type="submit" class="btn btn-outline-primary rounded-pill">
+                    Filter Records
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- All Loans Table -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+            <h2 class="h5 fw-bold mb-0 text-dark">Loan Registry Records ({{ loans.count }})</h2>
+        </div>
+        <div class="card-body p-0">
+            {% if loans %}
+            <div class="table-responsive">
+                <table class="table custom-table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Book Title</th>
+                            <th>Member / Borrower</th>
+                            <th>Borrow Date</th>
+                            <th>Due Date</th>
+                            <th>Return Date</th>
+                            <th>Status</th>
+                            <th>Fine Amount</th>
+                            <th class="text-end">Librarian Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for loan in loans %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'book_detail' loan.book.pk %}" class="fw-bold text-dark text-decoration-none">
+                                    {{ loan.book.title }}
+                                </a>
+                                <div class="small text-muted">{{ loan.book.isbn }}</div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ loan.user.get_full_name|default:loan.user.username }}</div>
+                                <div class="small text-muted">@{{ loan.user.username }}</div>
+                            </td>
+                            <td>{{ loan.borrow_date|date:"M d, Y" }}</td>
+                            <td>{{ loan.due_date|date:"M d, Y" }}</td>
+                            <td>
+                                {% if loan.return_date %}
+                                    <span class="text-success">{{ loan.return_date|date:"M d, Y" }}</span>
+                                {% else %}
+                                    <span class="text-muted fst-italic">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if loan.status == 'overdue' %}
+                                    <span class="status-badge overdue">
+                                        <i class="bi bi-exclamation-circle-fill"></i> Overdue
+                                    </span>
+                                {% elif loan.status == 'borrowed' %}
+                                    <span class="status-badge borrowed">
+                                        <i class="bi bi-clock-fill"></i> Active
+                                    </span>
+                                {% else %}
+                                    <span class="status-badge returned">
+                                        <i class="bi bi-check2"></i> Returned
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if loan.fine_amount > 0 %}
+                                    <span class="text-danger fw-bold">${{ loan.fine_amount }}</span>
+                                {% else %}
+                                    <span class="text-muted">$0.00</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if loan.status != 'returned' %}
+                                    <form method="POST" action="{% url 'return_book' loan.pk %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="from_manage" value="1">
+                                        <button type="submit" class="btn btn-sm btn-success rounded-pill px-3" onclick="return confirm('Mark this book as returned by member?');">
+                                            <i class="bi bi-check2-circle me-1"></i> Process Return
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <span class="badge bg-light text-muted border">Completed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                <p class="mb-0">No loan records match your current filter criteria.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

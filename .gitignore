@@ -1,0 +1,24 @@
+# Python & Virtualenv
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# Django
+*.log
+local_settings.py
+staticfiles/
+
+# Scratch folder
+mysite/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,136 @@
+{% extends 'library/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - LibroSphere{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'book_list' %}" class="text-decoration-none text-muted">Catalog</a></li>
+                    {% if book %}
+                        <li class="breadcrumb-item"><a href="{% url 'book_detail' book.pk %}" class="text-decoration-none text-muted">{{ book.title|truncatechars:25 }}</a></li>
+                    {% endif %}
+                    <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">{{ title }}</li>
+                </ol>
+            </nav>
+
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-lg-5 bg-white">
+                <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+                    <span class="brand-icon"><i class="bi bi-book"></i></span>
+                    <div>
+                        <h1 class="h3 fw-bold text-dark mb-0">{{ title }}</h1>
+                        <p class="text-muted small mb-0">Fill in the catalog specifications below. Required fields are validated by Django ORM.</p>
+                    </div>
+                </div>
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            <p class="mb-0">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="POST" novalidate id="bookForm">
+                    {% csrf_token %}
+
+                    <div class="row g-3">
+                        <!-- Title -->
+                        <div class="col-md-12">
+                            <label for="{{ form.title.id_for_label }}" class="form-label fw-semibold">Book Title <span class="text-danger">*</span></label>
+                            {{ form.title }}
+                            {% if form.title.errors %}<div class="text-danger small mt-1">{{ form.title.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <!-- Author & ISBN -->
+                        <div class="col-md-6">
+                            <label for="{{ form.author.id_for_label }}" class="form-label fw-semibold">Author(s) <span class="text-danger">*</span></label>
+                            {{ form.author }}
+                            {% if form.author.errors %}<div class="text-danger small mt-1">{{ form.author.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="{{ form.isbn.id_for_label }}" class="form-label fw-semibold">ISBN (10 or 13 digits) <span class="text-danger">*</span></label>
+                            {{ form.isbn }}
+                            {% if form.isbn.errors %}<div class="text-danger small mt-1">{{ form.isbn.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <!-- Category & Publication Year -->
+                        <div class="col-md-6">
+                            <label for="{{ form.category.id_for_label }}" class="form-label fw-semibold">Category / Genre <span class="text-danger">*</span></label>
+                            {{ form.category }}
+                            {% if form.category.errors %}<div class="text-danger small mt-1">{{ form.category.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="{{ form.publication_year.id_for_label }}" class="form-label fw-semibold">Publication Year <span class="text-danger">*</span></label>
+                            {{ form.publication_year }}
+                            {% if form.publication_year.errors %}<div class="text-danger small mt-1">{{ form.publication_year.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <!-- Publisher & Cover URL -->
+                        <div class="col-md-6">
+                            <label for="{{ form.publisher.id_for_label }}" class="form-label fw-semibold">Publisher</label>
+                            {{ form.publisher }}
+                            {% if form.publisher.errors %}<div class="text-danger small mt-1">{{ form.publisher.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="{{ form.cover_image_url.id_for_label }}" class="form-label fw-semibold">Cover Image URL</label>
+                            {{ form.cover_image_url }}
+                            {% if form.cover_image_url.errors %}<div class="text-danger small mt-1">{{ form.cover_image_url.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <!-- Total Copies & Available Copies -->
+                        <div class="col-md-6">
+                            <label for="{{ form.total_copies.id_for_label }}" class="form-label fw-semibold">Total Inventory Copies <span class="text-danger">*</span></label>
+                            {{ form.total_copies }}
+                            {% if form.total_copies.errors %}<div class="text-danger small mt-1">{{ form.total_copies.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="{{ form.available_copies.id_for_label }}" class="form-label fw-semibold">Available Copies <span class="text-danger">*</span></label>
+                            {{ form.available_copies }}
+                            {% if form.available_copies.errors %}<div class="text-danger small mt-1">{{ form.available_copies.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <!-- Featured Checkbox -->
+                        <div class="col-md-12">
+                            <div class="form-check form-switch mt-2">
+                                {{ form.is_featured }}
+                                <label class="form-check-label fw-semibold" for="{{ form.is_featured.id_for_label }}">
+                                    Highlight as Featured Book on Homepage
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Description with Character Counter -->
+                        <div class="col-md-12">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label for="book-description-input" class="form-label fw-semibold mb-0">Overview / Synopsis <span class="text-danger">*</span></label>
+                                <span class="badge bg-secondary char-counter-badge" id="descCharCounter">0 / 3000 characters</span>
+                            </div>
+                            {{ form.description }}
+                            {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="d-flex justify-content-end gap-3 mt-4 pt-3 border-top">
+                        <a href="{% if book %}{% url 'book_detail' book.pk %}{% else %}{% url 'book_list' %}{% endif %}" class="btn btn-outline-secondary rounded-pill px-4">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4">
+                            <i class="bi bi-check-lg me-1"></i> {{ action }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

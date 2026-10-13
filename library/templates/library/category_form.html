@@ -1,0 +1,50 @@
+{% extends 'library/base.html' %}
+{% load static %}
+
+{% block title %}Create New Category - LibroSphere{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-lg-5 bg-white">
+                <div class="d-flex align-items-center gap-3 mb-4 border-bottom pb-3">
+                    <span class="brand-icon"><i class="bi bi-folder-plus"></i></span>
+                    <div>
+                        <h1 class="h4 fw-bold text-dark mb-0">Create Discipline Category</h1>
+                        <p class="text-muted small mb-0">Organize library catalog by field of study.</p>
+                    </div>
+                </div>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold">Category Name <span class="text-danger">*</span></label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.icon.id_for_label }}" class="form-label fw-semibold">Bootstrap Icon Class</label>
+                        {{ form.icon }}
+                        <div class="form-text small">Examples: <code>bi-cpu</code>, <code>bi-book</code>, <code>bi-code-square</code>, <code>bi-gear</code>, <code>bi-journal-medical</code></div>
+                        {% if form.icon.errors %}<div class="text-danger small mt-1">{{ form.icon.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-3 border-top pt-3">
+                        <a href="{% url 'book_list' %}" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4">Save Category</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

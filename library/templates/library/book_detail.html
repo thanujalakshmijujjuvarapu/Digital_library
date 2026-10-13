@@ -1,0 +1,357 @@
+{% extends 'library/base.html' %}
+{% load static %}
+
+{% block title %}{{ book.title }} - LibroSphere{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'book_list' %}" class="text-decoration-none text-muted">Catalog</a></li>
+            {% if book.category %}
+                <li class="breadcrumb-item"><a href="{% url 'book_list' %}?category={{ book.category.slug }}" class="text-decoration-none text-muted">{{ book.category.name }}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">{{ book.title|truncatechars:35 }}</li>
+        </ol>
+    </nav>
+
+    <!-- Main Book Header Card -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5 bg-white">
+        <div class="card-body p-4 p-lg-5">
+            <div class="row g-4 g-lg-5 align-items-start">
+                
+                <!-- Book Cover -->
+                <div class="col-md-4 col-lg-3 text-center">
+                    <div class="book-detail-cover mb-3">
+                        {% if book.cover_image_url %}
+                            <img src="{{ book.cover_image_url }}" alt="{{ book.title }}" class="book-detail-img" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';">
+                        {% else %}
+                            <div class="d-flex align-items-center justify-content-center text-white" style="height: 350px; background: #1e293b;">
+                                <i class="bi bi-book-half" style="font-size: 5rem; opacity: 0.5;"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Staff Action Controls -->
+                    {% if user.is_staff or user.is_superuser %}
+                    <div class="d-grid gap-2 mt-3">
+                        <a href="{% url 'book_update' book.pk %}" class="btn btn-outline-secondary btn-sm rounded-pill">
+                            <i class="bi bi-pencil-square me-1"></i> Edit Book
+                        </a>
+                        <a href="{% url 'book_delete' book.pk %}" class="btn btn-outline-danger btn-sm rounded-pill">
+                            <i class="bi bi-trash me-1"></i> Delete Book
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Book Information -->
+                <div class="col-md-8 col-lg-9">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <span class="badge bg-primary text-white rounded-pill px-3 py-1">
+                            <i class="bi {{ book.category.icon|default:'bi-tag' }} me-1"></i> {{ book.category.name|default:"General" }}
+                        </span>
+                        {% if book.is_available %}
+                            <span class="badge bg-success text-white rounded-pill px-3 py-1">
+                                <i class="bi bi-check-circle-fill me-1"></i> In Stock ({{ book.available_copies }} of {{ book.total_copies }} Available)
+                            </span>
+                        {% else %}
+                            <span class="badge bg-danger text-white rounded-pill px-3 py-1">
+                                <i class="bi bi-x-circle-fill me-1"></i> Currently Out of Stock (0 of {{ book.total_copies }} Available)
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <h1 class="fw-bold mb-2 text-dark">{{ book.title }}</h1>
+                    <p class="fs-5 text-muted mb-3">
+                        by <span class="fw-semibold text-dark">{{ book.author }}</span>
+                    </p>
+
+                    <!-- Rating and Reviews Count -->
+                    <div class="d-flex align-items-center gap-2 mb-4">
+                        {% if book.average_rating %}
+                            <div class="text-warning fs-5">
+                                <i class="bi bi-star-fill"></i>
+                                <span class="fw-bold text-dark ms-1">{{ book.average_rating }}</span>
+                            </div>
+                            <span class="text-muted">| based on {{ book.reviews_count }} reader review{{ book.reviews_count|pluralize }}</span>
+                        {% else %}
+                            <span class="text-muted fst-italic">No reviews yet for this title</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-4">
+                        <h2 class="h6 fw-bold text-uppercase text-muted letter-spacing-1">Overview</h2>
+                        <p class="lead fs-6 text-secondary" style="white-space: pre-line; line-height: 1.7;">
+                            {{ book.description }}
+                        </p>
+                    </div>
+
+                    <!-- Metadata Grid -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6 col-lg-3">
+                            <div class="detail-spec-card">
+                                <div class="detail-spec-label">ISBN-13</div>
+                                <div class="detail-spec-value">{{ book.isbn }}</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <div class="detail-spec-card">
+                                <div class="detail-spec-label">Publication Year</div>
+                                <div class="detail-spec-value">{{ book.publication_year }}</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <div class="detail-spec-card">
+                                <div class="detail-spec-label">Publisher</div>
+                                <div class="detail-spec-value">{{ book.publisher|default:"University Press" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-lg-3">
+                            <div class="detail-spec-card">
+                                <div class="detail-spec-label">Total Inventory</div>
+                                <div class="detail-spec-value">{{ book.total_copies }} Copies</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Borrow / Loan Actions -->
+                    <div class="p-4 rounded-3 border bg-light">
+                        {% if user_active_loan %}
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                                <div>
+                                    <h3 class="h5 text-primary mb-1">
+                                        <i class="bi bi-bookmark-check-fill me-1"></i> You Currently Have This Book Borrowed
+                                    </h3>
+                                    <p class="text-muted small mb-0">
+                                        Due Date: <strong class="text-dark">{{ user_active_loan.due_date|date:"F d, Y" }}</strong> 
+                                        {% if user_active_loan.is_past_due %}
+                                            <span class="badge bg-danger ms-2">Overdue (Fine: ${{ user_active_loan.fine_amount }})</span>
+                                        {% else %}
+                                            <span class="badge bg-info ms-2">{{ user_active_loan.days_remaining }} days remaining</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <form method="POST" action="{% url 'return_book' user_active_loan.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success px-4 py-2 rounded-pill">
+                                        <i class="bi bi-arrow-return-left me-1"></i> Return Book Now
+                                    </button>
+                                </form>
+                            </div>
+                        {% elif user.is_authenticated %}
+                            {% if book.is_available %}
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                                    <div>
+                                        <h3 class="h5 mb-1 text-dark">Ready to Read?</h3>
+                                        <p class="text-muted small mb-0">
+                                            Instant digital checkout. Choose your loan period and track due dates.
+                                        </p>
+                                    </div>
+                                    <button type="button" class="btn btn-primary px-4 py-2 rounded-pill" data-bs-toggle="modal" data-bs-target="#borrowBookModal" id="openBorrowModalBtn">
+                                        <i class="bi bi-journal-plus me-1"></i> Borrow Book Now
+                                    </button>
+                                </div>
+                            {% else %}
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h3 class="h6 mb-0 text-danger">All copies are currently borrowed</h3>
+                                        <p class="text-muted small mb-0">Please check back when another reader returns this book.</p>
+                                    </div>
+                                    <button class="btn btn-secondary px-4 py-2 rounded-pill" disabled>
+                                        <i class="bi bi-dash-circle me-1"></i> Unavailable
+                                    </button>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                                <div>
+                                    <h3 class="h6 mb-1 text-dark">Borrowing requires an active account</h3>
+                                    <p class="text-muted small mb-0">Sign in with your student credentials or register for free.</p>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-outline-primary px-4 rounded-pill">Log In</a>
+                                    <a href="{% url 'register' %}" class="btn btn-primary px-4 rounded-pill text-white">Register</a>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= REVIEWS & FEEDBACK SECTION ================= -->
+    <div class="row g-4">
+        <!-- Reader Reviews List -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-lg-5 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="h4 fw-bold mb-0">Reader Reviews ({{ reviews.count }})</h2>
+                    {% if book.average_rating %}
+                        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold">
+                            <i class="bi bi-star-fill me-1"></i> {{ book.average_rating }} / 5.0
+                        </span>
+                    {% endif %}
+                </div>
+
+                {% for review in reviews %}
+                <div class="border-bottom pb-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="fw-bold text-dark">{{ review.user.first_name|default:review.user.username }}</span>
+                            <span class="text-muted small ms-2">{{ review.created_at|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="text-warning">
+                            {% for i in "12345"|make_list %}
+                                {% if forloop.counter <= review.rating %}
+                                    <i class="bi bi-star-fill"></i>
+                                {% else %}
+                                    <i class="bi bi-star text-muted"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <p class="text-secondary mb-2">{{ review.comment }}</p>
+                    {% if user == review.user or user.is_staff %}
+                    <form method="POST" action="{% url 'delete_review' review.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-link btn-sm text-danger p-0 text-decoration-none" onclick="return confirm('Delete this review?');">
+                            <i class="bi bi-trash me-1"></i> Delete review
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-chat-square-text fs-1 mb-2 d-block opacity-50"></i>
+                    <p class="mb-0">No reader reviews submitted yet. Be the first to review!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Write a Review Form -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-lg-5 bg-white">
+                <h2 class="h4 fw-bold mb-3">Add Your Review</h2>
+                {% if user.is_authenticated %}
+                    {% if user_has_reviewed %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-1"></i> You have already reviewed this book. Thank you for your feedback!
+                        </div>
+                    {% else %}
+                        <form method="POST" action="{% url 'add_review' book.pk %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="reviewRatingSelect" class="form-label fw-semibold">Your Rating</label>
+                                <select name="rating" id="reviewRatingSelect" class="form-select" required>
+                                    <option value="" disabled selected>Select rating (1 to 5 stars)</option>
+                                    <option value="5">★★★★★ - 5 Stars (Outstanding)</option>
+                                    <option value="4">★★★★☆ - 4 Stars (Very Good)</option>
+                                    <option value="3">★★★☆☆ - 3 Stars (Good)</option>
+                                    <option value="2">★★☆☆☆ - 2 Stars (Fair)</option>
+                                    <option value="1">★☆☆☆☆ - 1 Star (Poor)</option>
+                                </select>
+                                <div id="ratingHelpText" class="form-text text-warning fw-semibold mt-1"></div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label for="reviewCommentInput" class="form-label fw-semibold mb-0">Review Comments</label>
+                                    <span class="badge bg-secondary char-counter-badge" id="reviewCharCounter">0 / 1000 characters</span>
+                                </div>
+                                <textarea name="comment" id="reviewCommentInput" class="form-control" rows="4" maxlength="1000" placeholder="Share your experience and thoughts about this book (minimum 10 characters)..." required></textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill">
+                                <i class="bi bi-send me-1"></i> Submit Review
+                            </button>
+                        </form>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted">Please sign in to submit a rating and review.</p>
+                        <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-outline-primary rounded-pill px-4">
+                            Log In to Review
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= BORROW MODAL WITH DYNAMIC JAVASCRIPT CALCULATOR ================= -->
+{% if user.is_authenticated and book.is_available %}
+<div class="modal fade" id="borrowBookModal" tabindex="-1" aria-labelledby="borrowModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-primary text-white border-0 py-3">
+                <h5 class="modal-title fw-bold" id="borrowModalLabel">
+                    <i class="bi bi-journal-check me-2"></i> Borrow: {{ book.title|truncatechars:28 }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form method="POST" action="{% url 'borrow_book' book.pk %}" id="borrowForm">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="mb-4">
+                        <label for="loanDurationSelect" class="form-label fw-semibold">Select Loan Duration</label>
+                        {{ borrow_form.loan_duration_days }}
+                        <div class="form-text">Choose how long you plan to borrow this volume.</div>
+                    </div>
+
+                    <!-- Dynamic Due Date Display (JS Calculated) -->
+                    <div class="p-3 bg-light rounded-3 border mb-4">
+                        <div class="text-muted small text-uppercase fw-bold mb-1">
+                            <i class="bi bi-calendar-event me-1 text-primary"></i> Estimated Due Date:
+                        </div>
+                        <div class="h5 fw-bold text-primary mb-0" id="calculatedDueDate">
+                            Calculating...
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Late Fee Estimator Simulator (Interactive JS Feature) -->
+                    <div class="border rounded-3 p-3 mb-4 bg-white shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-bold text-dark"><i class="bi bi-calculator me-1"></i> Overdue Late Fee Simulator</span>
+                            <span class="badge bg-light text-muted border">$0.50 per day</span>
+                        </div>
+                        <label for="daysLateSlider" class="form-label small text-muted mb-1">
+                            Simulate days returned late: <strong id="daysLateDisplay" class="text-dark">0 days</strong>
+                        </label>
+                        <input type="range" class="form-range" id="daysLateSlider" min="0" max="30" value="0">
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <span class="small text-muted">Estimated Penalty:</span>
+                            <span id="estimatedFineDisplay" class="text-success fw-bold">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Optional Note -->
+                    <div class="mb-3">
+                        <label for="{{ borrow_form.notes.id_for_label }}" class="form-label fw-semibold">Loan Purpose / Note (Optional)</label>
+                        {{ borrow_form.notes }}
+                    </div>
+
+                    <div class="small text-muted">
+                        <i class="bi bi-info-circle me-1"></i> By checking out, you agree to return or renew this book before the due date.
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 bg-light p-3">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4" id="confirmBorrowBtn">
+                        <i class="bi bi-check2-circle me-1"></i> Confirm Checkout
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

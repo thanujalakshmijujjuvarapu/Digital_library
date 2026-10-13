@@ -1,0 +1,261 @@
+{% extends 'library/base.html' %}
+{% load static %}
+
+{% block title %}Explore Catalog - LibroSphere Digital Library{% endblock %}
+
+{% block content %}
+<!-- ================= HERO SECTION ================= -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 mb-3 fw-bold">
+                    <i class="bi bi-stars me-1"></i> Knowledge Without Limits
+                </span>
+                <h1 class="hero-title text-white mb-3">
+                    Discover, Learn & Master with Digital Library Hub
+                </h1>
+                <p class="hero-subtitle mb-4">
+                    Access our curated collection of textbooks, research papers, and technical classics. Borrow instantly, monitor due dates, and track your reading journey.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="#catalogSection" class="btn btn-primary px-4 py-2" id="heroBrowseBtn">
+                        <i class="bi bi-compass me-2"></i> Browse Books
+                    </a>
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'my_loans' %}" class="btn btn-outline-light px-4 py-2" id="heroMyLoansBtn">
+                        <i class="bi bi-bookmark-check me-2"></i> My Active Loans
+                    </a>
+                    {% else %}
+                    <a href="{% url 'register' %}" class="btn btn-outline-light px-4 py-2" id="heroRegisterBtn">
+                        <i class="bi bi-person-plus me-2"></i> Join as Member
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Live Library Metrics -->
+            <div class="col-lg-5">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="hero-stat-card">
+                            <div class="stat-icon-wrapper bg-primary text-white">
+                                <i class="bi bi-book"></i>
+                            </div>
+                            <div>
+                                <div class="stat-number">{{ total_books_count }}</div>
+                                <div class="stat-label">Unique Titles</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="hero-stat-card">
+                            <div class="stat-icon-wrapper bg-info text-white">
+                                <i class="bi bi-layers"></i>
+                            </div>
+                            <div>
+                                <div class="stat-number">{{ total_copies_count }}</div>
+                                <div class="stat-label">Total Copies</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="hero-stat-card">
+                            <div class="stat-icon-wrapper bg-warning text-white">
+                                <i class="bi bi-arrow-repeat"></i>
+                            </div>
+                            <div>
+                                <div class="stat-number">{{ active_loans_count }}</div>
+                                <div class="stat-label">Active Loans</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="hero-stat-card">
+                            <div class="stat-icon-wrapper bg-success text-white">
+                                <i class="bi bi-tags"></i>
+                            </div>
+                            <div>
+                                <div class="stat-number">{{ categories.count }}</div>
+                                <div class="stat-label">Disciplines</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ================= CATALOG SECTION ================= -->
+<section class="py-5" id="catalogSection">
+    <div class="container">
+
+        <!-- Search & Control Header -->
+        <div class="card border-0 shadow-sm p-4 mb-4 rounded-4 bg-white">
+            <div class="row g-3 align-items-center">
+                <!-- Live Search Input (JS Powered) -->
+                <div class="col-lg-5 col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0 text-muted">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" 
+                               id="liveSearchInput" 
+                               class="form-control bg-light border-start-0" 
+                               placeholder="Live search by title, author, ISBN..." 
+                               value="{{ query }}">
+                    </div>
+                    <div class="form-text small text-muted">
+                        <i class="bi bi-lightning-charge-fill text-warning me-1"></i> Instant client-side search updates in real-time
+                    </div>
+                </div>
+
+                <!-- Server Sort Dropdown -->
+                <div class="col-lg-3 col-md-3">
+                    <form method="GET" action="{% url 'book_list' %}" class="d-flex" id="sortForm">
+                        {% if selected_category %}
+                            <input type="hidden" name="category" value="{{ selected_category.slug }}">
+                        {% endif %}
+                        <select name="sort" class="form-select bg-light" onchange="this.form.submit()">
+                            <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Sort: Newly Added</option>
+                            <option value="title" {% if sort == 'title' %}selected{% endif %}>Sort: Title (A-Z)</option>
+                            <option value="year" {% if sort == 'year' %}selected{% endif %}>Sort: Publication Year</option>
+                            <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Sort: Oldest</option>
+                        </select>
+                    </form>
+                </div>
+
+                <!-- Availability Toggle (JS Powered) -->
+                <div class="col-lg-4 col-md-3 d-flex justify-content-md-end align-items-center gap-3">
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="availabilityFilterToggle" {% if availability == '1' %}checked{% endif %}>
+                        <label class="form-check-label small fw-semibold text-muted" for="availabilityFilterToggle">
+                            In Stock Only
+                        </label>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2" id="resultsCountBadge">
+                        {{ books.count }} books displayed
+                    </span>
+                </div>
+            </div>
+
+            <!-- Category Pills Filter Bar -->
+            <hr class="my-3 text-muted opacity-25">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="small fw-bold text-muted text-uppercase me-2">Category:</span>
+                <button type="button" class="filter-pill {% if not selected_category %}active{% endif %}" data-category="all">
+                    <i class="bi bi-grid-fill me-1"></i> All Categories
+                </button>
+                {% for cat in categories %}
+                <button type="button" 
+                        class="filter-pill {% if selected_category.slug == cat.slug %}active{% endif %}" 
+                        data-category="{{ cat.name }}">
+                    <i class="bi {{ cat.icon }} me-1"></i> {{ cat.name }} ({{ cat.total_books }})
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- ================= BOOK CARDS GRID ================= -->
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-4" id="booksGrid">
+            {% for book in books %}
+            <div class="col book-item-col" 
+                 data-title="{{ book.title }}" 
+                 data-author="{{ book.author }}" 
+                 data-isbn="{{ book.isbn }}" 
+                 data-category="{{ book.category.name|default:'Uncategorized' }}" 
+                 data-available="{% if book.available_copies > 0 %}true{% else %}false{% endif %}">
+                
+                <div class="book-card">
+                    <!-- Book Cover -->
+                    <div class="book-cover-container">
+                        {% if book.cover_image_url %}
+                            <img src="{{ book.cover_image_url }}" alt="{{ book.title }} Cover" class="book-cover-img" loading="lazy" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';">
+                        {% else %}
+                            <div class="book-cover-fallback">
+                                <i class="bi bi-journal-richtext"></i>
+                            </div>
+                        {% endif %}
+
+                        <!-- Category Pill -->
+                        <span class="book-category-badge">
+                            {{ book.category.name|default:"General" }}
+                        </span>
+
+                        <!-- Availability Indicator -->
+                        {% if book.available_copies > 0 %}
+                            <span class="availability-pill in-stock">
+                                <i class="bi bi-check-circle-fill me-1"></i> {{ book.available_copies }} In Stock
+                            </span>
+                        {% else %}
+                            <span class="availability-pill out-of-stock">
+                                <i class="bi bi-x-circle-fill me-1"></i> Checked Out
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Book Card Body -->
+                    <div class="book-card-body">
+                        <h2 class="book-title h5">
+                            <a href="{% url 'book_detail' book.pk %}" class="text-decoration-none text-dark">
+                                {{ book.title }}
+                            </a>
+                        </h2>
+                        <div class="book-author">
+                            <i class="bi bi-person me-1"></i> {{ book.author }}
+                        </div>
+                        
+                        <!-- Star Rating -->
+                        <div class="d-flex align-items-center gap-1 mb-2">
+                            {% if book.average_rating %}
+                                <span class="star-rating-display"><i class="bi bi-star-fill text-warning"></i></span>
+                                <span class="fw-bold small">{{ book.average_rating }}</span>
+                                <span class="text-muted small">({{ book.reviews_count }})</span>
+                            {% else %}
+                                <span class="text-muted small fst-italic">No reviews yet</span>
+                            {% endif %}
+                            <span class="ms-auto text-muted small">{{ book.publication_year }}</span>
+                        </div>
+
+                        <!-- Description Snippet -->
+                        <p class="book-desc-clamp">
+                            {{ book.description }}
+                        </p>
+
+                        <!-- Card Footer Actions -->
+                        <div class="book-footer">
+                            <span class="small text-muted">
+                                <i class="bi bi-upc-scan me-1"></i> {{ book.isbn }}
+                            </span>
+                            <a href="{% url 'book_detail' book.pk %}" class="btn btn-sm btn-primary">
+                                Details <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <div class="py-5">
+                    <i class="bi bi-journal-x text-muted" style="font-size: 4rem;"></i>
+                    <h3 class="h4 mt-3 text-secondary">No books currently in catalog</h3>
+                    <p class="text-muted">New books will appear here once registered.</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Dynamic Empty State (Triggered when live search finds 0 matches) -->
+        <div id="noResultsMessage" class="d-none text-center py-5 my-4 bg-white rounded-4 shadow-sm p-5">
+            <i class="bi bi-search text-muted" style="font-size: 3.5rem;"></i>
+            <h3 class="h4 mt-3">No matching books found</h3>
+            <p class="text-muted">Try adjusting your search terms or clearing category filters.</p>
+            <button class="btn btn-outline-primary rounded-pill px-4" onclick="document.getElementById('liveSearchInput').value=''; document.querySelectorAll('.filter-pill[data-category=\'all\']')[0].click();">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Search & Filters
+            </button>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
